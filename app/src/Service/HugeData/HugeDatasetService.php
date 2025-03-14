@@ -5,6 +5,7 @@ namespace App\Service\HugeData;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Contracts\Cache\CacheInterface;
 use Symfony\Contracts\Cache\ItemInterface;
+use App\Repository\BigDataRepository;
 
 class HugeDatasetService
 {
@@ -16,7 +17,8 @@ class HugeDatasetService
 
     public function __construct(
         private readonly CacheInterface $cache,
-        private readonly LockFactory $lockFactory
+        private readonly LockFactory $lockFactory,
+        private readonly BigDataRepository $repository
     ) {}
 
     public function getProcessedDataset(): array
@@ -41,12 +43,19 @@ class HugeDatasetService
     private function processData(): array
     {
         sleep(self::SLEEP_TIMEOUT);
-        return [
-            ['id' => 1, 'name' => 'Item 1'],
-            ['id' => 2, 'name' => 'Item 2'],
-            ['id' => 3, 'name' => 'Item 3'],
-            ['id' => 4, 'name' => 'Item 4'],
-            ['id' => 5, 'name' => 'Item 5'],
-        ];
+
+        $items = $this->repository->findLatest();
+
+        $result = [];
+        foreach ($items as $item) {
+            $result[] = [
+                'id' => $item->getId(),
+                'name' => $item->getName(),
+                'description' => $item->getDescription(),
+                'created_at' => $item->getCreatedAt()->format('Y-m-d H:i:s'),
+            ];
+        }
+
+        return $result;
     }
 }
